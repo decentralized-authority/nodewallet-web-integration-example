@@ -13,6 +13,7 @@ enum poktMessageType {
   TX = 'pokt_tx',
   HEIGHT = 'pokt_height',
   BLOCK = 'pokt_block',
+  CHAIN = 'pokt_chain',
 }
 
 const handleError = (err: any) => {
@@ -43,8 +44,17 @@ const WalletComponent = ({ address }: WalletComponentProps) => {
   const [ txRecipient, setTxRecipient ] = useState<string>('');
   const [ txAmount, setTxAmount ] = useState<string>('');
   const [ txMemo, setTxMemo ] = useState<string>('');
+  const [ chain, setChain ] = useState<string>('');
 
   useEffect(() => {
+
+    window.pocketNetwork.send(poktMessageType.CHAIN)
+      .then((res: { chain: string }) => {
+        setChain(res?.chain ? res.chain : '');
+      })
+      .catch((err: any) => {
+        console.error(err);
+      });
 
     window.pocketNetwork.send(poktMessageType.HEIGHT)
       .then((res: { height: number }) => {
@@ -112,6 +122,9 @@ const WalletComponent = ({ address }: WalletComponentProps) => {
 
   return (
     <div>
+      <div>
+        Pocket Network Chain: <strong>{chain}</strong>
+      </div>
       <div>
         Pocket Network Height: <strong>{height ? height : ''}</strong>
       </div>
