@@ -197,7 +197,7 @@ export const App = () => {
 
   return (
     <div>
-      <h1>NodeWallet Integration Example</h1>
+      <h1>POKT Web Integration Tester</h1>
       {typeof walletAvailable !== 'boolean' ?
         null
         :
