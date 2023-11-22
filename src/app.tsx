@@ -10,6 +10,7 @@ enum poktMessageType {
   REQUEST_ACCOUNTS = 'pokt_requestAccounts',
   BALANCE = 'pokt_balance',
   SEND_TRANSACTION = 'pokt_sendTransaction',
+  SIGN_MESSAGE = 'pokt_signMessage',
   TX = 'pokt_tx',
   HEIGHT = 'pokt_height',
   BLOCK = 'pokt_block',
@@ -45,6 +46,8 @@ const WalletComponent = ({ address }: WalletComponentProps) => {
   const [ txAmount, setTxAmount ] = useState<string>('');
   const [ txMemo, setTxMemo ] = useState<string>('');
   const [ chain, setChain ] = useState<string>('');
+  const [ signingPayload, setSigningPayload ] = useState<string>('');
+  const [ signature, setSignature ] = useState<string>('');
 
   useEffect(() => {
 
@@ -105,6 +108,21 @@ const WalletComponent = ({ address }: WalletComponentProps) => {
       });
   };
 
+  const onSigningPayloadChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    setSigningPayload(e.target.value);
+  };
+  const onSignSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    window.pocketNetwork.send(poktMessageType.SIGN_MESSAGE, [{message: signingPayload, address}])
+      .then((res: {signature: string}) => {
+        setSignature(res.signature);
+      })
+      .catch((err: any) => {
+        handleError(err);
+      });
+  };
+
   const onTxidChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
     setTxid(e.target.value);
@@ -152,6 +170,22 @@ const WalletComponent = ({ address }: WalletComponentProps) => {
           </div>
           <button type="submit">Send Transaction</button>
         </form>
+      </div>
+
+      <div>
+        <h2>Sign Message</h2>
+        <form onSubmit={onSignSubmit}>
+          <div>
+            <label>Message:</label>
+            <input type="text" placeholder="Message to sign" value={signingPayload} onChange={onSigningPayloadChange} />
+          </div>
+          <button type="submit">Sign Message</button>
+        </form>
+        {signature ?
+          <div style={styles.signatureContainer as React.CSSProperties}>{signature}</div>
+          :
+          null
+        }
       </div>
 
       <div>
@@ -214,6 +248,10 @@ export const App = () => {
 }
 
 const styles = {
+  signatureContainer: {
+    fontFamily: 'monospace',
+    overflowWrap: 'break-word',
+  },
   txContainer: {
     fontFamily: 'monospace',
     whiteSpace: 'pre',
