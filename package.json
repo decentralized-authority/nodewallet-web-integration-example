@@ -1,7 +1,7 @@
 {
   "name": "nodewallet-web-integration-example",
   "description": "nodewallet-web-integration-example",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -48,4 +48,3 @@
   },
   "author": "Ryan Burgett <ryan@burgettdev.net>"
 }
-
