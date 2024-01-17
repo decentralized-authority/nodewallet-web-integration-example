@@ -8,8 +8,10 @@ declare global {
 
 enum poktMessageType {
   REQUEST_ACCOUNTS = 'pokt_requestAccounts',
+  PUBLIC_KEY = 'pokt_publicKey',
   BALANCE = 'pokt_balance',
   SEND_TRANSACTION = 'pokt_sendTransaction',
+  STAKE_NODE = 'pokt_stakeNode',
   SIGN_MESSAGE = 'pokt_signMessage',
   TX = 'pokt_tx',
   HEIGHT = 'pokt_height',
@@ -38,6 +40,7 @@ interface WalletComponentProps {
 }
 const WalletComponent = ({ address }: WalletComponentProps) => {
 
+  const [ publicKey, setPublicKey ] = useState<string>('');
   const [ balance, setBalance ] = useState<number>(0);
   const [ height, setHeight ] = useState(0);
   const [ txid, setTxid ] = useState<string>('');
@@ -48,8 +51,20 @@ const WalletComponent = ({ address }: WalletComponentProps) => {
   const [ chain, setChain ] = useState<string>('');
   const [ signingPayload, setSigningPayload ] = useState<string>('');
   const [ signature, setSignature ] = useState<string>('');
+  const [ stakeAmount, setStakeAmount ] = useState<string>('');
+  const [ stakeServiceUrl, setStakeServiceUrl ] = useState<string>('');
+  const [ stakeChains, setStakeChains ] = useState<string>('');
+  const [ stakeOperatorPublicKey, setStakeOperatorPublicKey ] = useState<string>('');
 
   useEffect(() => {
+
+    window.pocketNetwork.send(poktMessageType.PUBLIC_KEY, [{address}])
+      .then((res: { publicKey: string }) => {
+        setPublicKey(res?.publicKey ? res.publicKey : '');
+      })
+      .catch((err: any) => {
+        console.error(err);
+      });
 
     window.pocketNetwork.send(poktMessageType.CHAIN)
       .then((res: { chain: string }) => {
@@ -138,6 +153,43 @@ const WalletComponent = ({ address }: WalletComponentProps) => {
       });
   };
 
+  const onStakeAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    setStakeAmount(e.target.value);
+  };
+  const onStakeServiceUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    setStakeServiceUrl(e.target.value);
+  };
+  const onStakeChainsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    setStakeChains(e.target.value);
+  };
+  const onStakeOperatorPublicKeyChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    e.preventDefault();
+    setStakeOperatorPublicKey(e.target.value);
+  };
+  const onStakeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    window.pocketNetwork.send(poktMessageType.STAKE_NODE, [{
+      amount: stakeAmount,
+      chains: stakeChains.split(','),
+      address,
+      operatorPublicKey: stakeOperatorPublicKey,
+      serviceURL: stakeServiceUrl,
+    }])
+      .then((res: {hash: string}) => {
+        alert(`Stake transaction sent with hash:\n\n${res.hash}`);
+        setStakeAmount('');
+        setStakeServiceUrl('');
+        setStakeChains('');
+        setStakeOperatorPublicKey('');
+      })
+      .catch((err: any) => {
+        handleError(err);
+      });
+  };
+
   return (
     <div>
       <div>
@@ -150,7 +202,10 @@ const WalletComponent = ({ address }: WalletComponentProps) => {
         POKT Account: <strong>{address}</strong>
       </div>
       <div>
-        Account Blance: <strong>{balance} uPOKT</strong>
+        Account Balance: <strong>{balance} uPOKT</strong>
+      </div>
+      <div>
+        Public Key: <strong>{publicKey}</strong>
       </div>
 
       <div>
@@ -158,15 +213,16 @@ const WalletComponent = ({ address }: WalletComponentProps) => {
         <form onSubmit={onSendTransactionSubmit}>
           <div>
             <label>Recipient Address:</label>
-            <input type="text" placeholder="Enter recipient address" value={txRecipient} onChange={onTxRecipientChange} />
+            <input type="text" placeholder="Enter recipient address" value={txRecipient}
+                   onChange={onTxRecipientChange}/>
           </div>
           <div>
             <label>Amount in uPOKT:</label>
-            <input type="number" placeholder="Enter amount" value={txAmount} onChange={onTxAmountChange} />
+            <input type="number" placeholder="Enter amount" value={txAmount} onChange={onTxAmountChange}/>
           </div>
           <div>
             <label>Memo (optional):</label>
-            <input type="text" placeholder="Enter memo" value={txMemo} onChange={onTxMemoChange} />
+            <input type="text" placeholder="Enter memo" value={txMemo} onChange={onTxMemoChange}/>
           </div>
           <button type="submit">Send Transaction</button>
         </form>
@@ -177,7 +233,7 @@ const WalletComponent = ({ address }: WalletComponentProps) => {
         <form onSubmit={onSignSubmit}>
           <div>
             <label>Message:</label>
-            <input type="text" placeholder="Message to sign" value={signingPayload} onChange={onSigningPayloadChange} />
+            <input type="text" placeholder="Message to sign" value={signingPayload} onChange={onSigningPayloadChange}/>
           </div>
           <button type="submit">Sign Message</button>
         </form>
@@ -193,7 +249,7 @@ const WalletComponent = ({ address }: WalletComponentProps) => {
         <form onSubmit={onGetTransactionSubmit}>
           <div>
             <label>Transaction Hash:</label>
-            <input type="text" placeholder="Transaction Hash" value={txid} onChange={onTxidChange} />
+            <input type="text" placeholder="Transaction Hash" value={txid} onChange={onTxidChange}/>
           </div>
           <button type="submit">Get Transaction</button>
         </form>
@@ -204,13 +260,40 @@ const WalletComponent = ({ address }: WalletComponentProps) => {
         }
       </div>
 
+      <div>
+        <h2>Stake Node</h2>
+        <form onSubmit={onStakeSubmit}>
+          <div>
+            <label>Amount in uPOKT:</label>
+            <input type="number" placeholder="Enter amount to stake" value={stakeAmount}
+                   onChange={onStakeAmountChange}/>
+          </div>
+          <div>
+            <label>Service URL:</label>
+            <input type="text" placeholder="Enter service URL" value={stakeServiceUrl}
+                   onChange={onStakeServiceUrlChange}/>
+          </div>
+          <div>
+            <label>Chains:</label>
+            <input type="text" placeholder="Enter chains, separated by comma" value={stakeChains}
+                   onChange={onStakeChainsChange}/>
+          </div>
+          <div>
+            <label>Operator Public Key:</label>
+            <textarea rows={3} style={styles.textarea as React.CSSProperties} placeholder="Enter operator public key"
+                      value={stakeOperatorPublicKey} onChange={onStakeOperatorPublicKeyChange}/>
+          </div>
+          <button type="submit">Stake Node</button>
+        </form>
+      </div>
+
     </div>
   );
 };
 
 export const App = () => {
 
-  const [ walletAvailable, setWalletAvailable ] = useState<boolean|null>(null);
+  const [walletAvailable, setWalletAvailable ] = useState<boolean|null>(null);
   const [ address, setAddress ] = useState<string>('');
 
   useEffect(() => {
@@ -256,4 +339,7 @@ const styles = {
     fontFamily: 'monospace',
     whiteSpace: 'pre',
   },
-}
+  textarea: {
+    resize: 'vertical',
+  },
+};
